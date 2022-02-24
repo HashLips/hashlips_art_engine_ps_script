@@ -24,6 +24,18 @@ function main() {
 
   resetLayers(groups);
 
+  function getRWeights(_str) {
+    var weight = Number(_str.split("#").pop());
+    if(isNaN(weight)){
+      weight = 1;
+    }
+    return weight;
+  }
+
+  function cleanName(_str) {
+    return _str.split("#").shift();
+  }
+
   for (var h = 1; h < parseInt(supply) + 1; h++) {
     var obj = {};
     obj.name = name + " #" + h;
@@ -32,12 +44,33 @@ function main() {
     obj.edition = h;
     obj.attributes = [];
     for (var i = 0; i < groups.length; i++) {
-      var ran = Math.floor(Math.random() * groups[i].layers.length);
-      groups[i].layers[ran].visible = true;
-      obj.attributes.push({
-        trait_type: groups[i].name, 
-        value: groups[i].layers[ran].name
-      })
+      var totalWeight = 0;
+      var layerMap = [];
+
+      for(var j = 0; j < groups[i].layers.length; j++){
+        totalWeight += getRWeights(groups[i].layers[j].name);
+        layerMap.push({
+          index: j,
+          name: cleanName(groups[i].layers[j].name),
+          weight: getRWeights(groups[i].layers[j].name)
+        });
+      }
+
+      var ran = Math.floor(Math.random() * totalWeight);
+
+      (function() {
+        for(var j = 0; j < groups[i].layers.length; j++){
+          ran -= layerMap[j].weight;
+          if(ran < 0) {
+            groups[i].layers[j].visible = true;
+            obj.attributes.push({
+              trait_type: groups[i].name, 
+              value: layerMap[j].name
+            })
+            return;
+          }
+        }
+      })();
     }
     saveImage(obj.edition);
     saveMetadata(obj);
